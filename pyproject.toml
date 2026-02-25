@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "so-ops"
+version = "0.1.0"
+description = "LLM-powered alert triage, health reports, and vulnerability scanning for Security Onion"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["security-onion", "soc", "ids", "suricata", "zeek", "llm", "triage", "elasticsearch"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Monitoring",
+]
+
+[project.urls]
+Homepage = "https://github.com/om/so-ops"
+Repository = "https://github.com/om/so-ops"
+Issues = "https://github.com/om/so-ops/issues"
+
+[project.scripts]
+so-ops = "so_ops.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

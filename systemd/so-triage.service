@@ -1,0 +1,14 @@
+[Unit]
+Description=SO Alert Triage
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=om
+ExecStart=/home/om/so-ops/.venv/bin/so-ops triage
+WorkingDirectory=/home/om/so-ops
+Environment=SO_OPS_CONFIG=/home/om/so-ops/config.toml
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=600

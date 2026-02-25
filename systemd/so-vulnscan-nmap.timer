@@ -1,0 +1,9 @@
+[Unit]
+Description=Run nmap vuln scan on Sundays at 2:00 AM EST
+
+[Timer]
+OnCalendar=Sun *-*-* 07:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

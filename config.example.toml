@@ -1,0 +1,122 @@
+# so-ops configuration
+# Copy to config.toml and fill in your values, or run: so-ops init
+# chmod 600 config.toml
+
+[elasticsearch]
+host = "https://<your-so-manager>:9200"
+user = "so_elastic"
+password = ""
+verify_ssl = false
+
+[elasticsearch.indices]
+suricata = "logs-suricata.alerts-so"
+zeek = "logs-zeek-so"
+detections = "logs-detections.alerts-so"
+syslog = "logs-syslog-so"
+data_streams = "*so*"
+
+[ollama]
+url = "http://localhost:11434"
+model = "qwen3:14b"
+
+# ── Notifications ────────────────────────────────────────────
+# Enable one or more providers. Each needs enabled = true.
+
+[notifications.email]
+enabled = false
+smtp_host = ""
+smtp_port = 465
+from_address = ""
+password = ""
+to_address = ""
+
+[notifications.discord]
+enabled = false
+webhook_url = ""
+
+[notifications.slack]
+enabled = false
+webhook_url = ""
+
+[notifications.ntfy]
+enabled = false
+url = "https://ntfy.sh"
+topic = ""
+
+[notifications.gotify]
+enabled = false
+url = ""
+token = ""
+
+[notifications.sms]
+enabled = false
+twilio_account_sid = ""
+twilio_auth_token = ""
+from_number = ""
+to_number = ""
+
+[notifications.webhook]
+enabled = false
+url = ""
+
+# ── Paths ────────────────────────────────────────────────────
+
+[paths]
+data_dir = "~/so-ops-data"
+
+# ── Triage ───────────────────────────────────────────────────
+
+[triage]
+lookback_hours = 24
+max_alerts_per_run = 500
+max_alerts_per_query = 2000
+max_batch_size = 50
+llm_temperature = 0.1
+
+[triage.auto_noise]
+signatures = [
+    "ET INFO Session Traversal Utilities for NAT (STUN Binding Request)",
+    "ET INFO Session Traversal Utilities for NAT (STUN Binding Response)",
+    "ET INFO Session Traversal Utilities for NAT (STUN Binding Request On Non-Standard High Port)",
+    "ET INFO Microsoft Connection Test",
+]
+
+[triage.escalation]
+minimum_medium = [
+    "ET SCAN", "ET EXPLOIT", "ET TROJAN", "ET MALWARE", "ET ATTACK",
+    "ET DOS", "ET SHELLCODE", "ET WEB_SERVER", "ET WEB_CLIENT",
+    "GPL EXPLOIT", "GPL SHELLCODE", "GPL ATTACK",
+]
+minimum_high = [
+    "ET TROJAN", "ET MALWARE", "ET EXPLOIT Known", "ET ATTACK",
+    "ET SHELLCODE", "GPL EXPLOIT",
+]
+
+# ── Health ───────────────────────────────────────────────────
+
+[health]
+llm_temperature = 0.3
+
+# ── Vulnerability Scanning ───────────────────────────────────
+
+[vulnscan]
+targets = ["192.168.0.0/24"]
+nmap_bin = "/usr/bin/nmap"
+nmap_args = "-sV --script=vulners -T4 --open"
+nuclei_docker = "projectdiscovery/nuclei:latest"
+nuclei_severity = "medium,high,critical"
+
+# ── Network ──────────────────────────────────────────────────
+
+[network]
+internal_prefixes = ["192.168.", "10.", "172.16."]
+
+[[network.zones]]
+cidr = "192.168.0.0/24"
+name = "server LAN"
+description = "Security Onion manager, servers"
+
+[[network.zones]]
+cidr = "192.168.1.0/24"
+name = "client LAN"
+description = "Workstations, phones, IoT"

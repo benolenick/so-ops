@@ -1,0 +1,14 @@
+[Unit]
+Description=SO Vulnerability Scan (nuclei)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=om
+ExecStart=/home/om/so-ops/.venv/bin/so-ops scan --type nuclei
+WorkingDirectory=/home/om/so-ops
+Environment=SO_OPS_CONFIG=/home/om/so-ops/config.toml
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=7200
