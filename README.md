@@ -28,14 +28,28 @@ Collects 24h metrics from Suricata, Zeek, Sigma detections, and data stream heal
 ### Vulnerability Scanning (`so-ops scan`)
 Runs nmap + vulners and/or nuclei against your network. Produces a report with CVE findings and an AI executive summary.
 
+## Where to Install
+
+so-ops does **not** need to run on your Security Onion box. It connects to SO's Elasticsearch over HTTPS, so it can run from any machine on your network that can reach the SO manager on port 9200.
+
+**Recommended: install on a separate machine**, not on the SO sensor itself.
+
+- **Don't pollute the sensor** — SO is a tuned appliance; adding packages and workloads can cause issues
+- **Ollama needs resources** — a 14B-parameter LLM wants RAM/GPU that shouldn't compete with Elasticsearch and Zeek
+- **SO's firewall is restrictive** — installing packages directly on SO can be difficult (pip/git may be blocked or missing)
+- **Vuln scans from outside SO** give you the external attacker's perspective
+
+A small Linux VM, a spare workstation, or even a Raspberry Pi 5 will work — the only network requirement is HTTPS access to your SO manager's Elasticsearch port (default 9200).
+
 ## Requirements
 
-- **Security Onion 2.4+** with Elasticsearch enabled
-- **Python 3.11+** (ships with Security Onion 2.4)
-- **pip** (Python package installer — see install steps below if missing)
-- **Ollama** with a model pulled (e.g., `ollama pull qwen3:14b`)
-- **nmap** (for vulnerability scanning)
-- **Docker** (for nuclei scanning, optional)
+| Requirement | Purpose | Notes |
+|-------------|---------|-------|
+| **Security Onion 2.4+** | Data source | Elasticsearch must be enabled |
+| **Python 3.11+** | Runtime | Ships with most modern distros |
+| **Ollama** | Local LLM | Install from [ollama.com](https://ollama.com), then `ollama pull qwen3:14b` |
+| **nmap** | Vulnerability scanning | Optional — only for `so-ops scan` |
+| **Docker** | Nuclei scanning | Optional — only for `so-ops scan --type nuclei` |
 
 so-ops has **zero third-party Python dependencies** — it only uses the Python standard library.
 
@@ -50,7 +64,7 @@ pip install git+https://github.com/benolenick/so-ops.git
 If you get `-bash: pip: command not found`, install pip first:
 
 ```bash
-# RHEL / Oracle Linux / Rocky (typical Security Onion base)
+# RHEL / Oracle Linux / Rocky
 sudo dnf install python3-pip
 
 # Debian / Ubuntu
@@ -68,33 +82,73 @@ cd so-ops
 python3 -m pip install .
 ```
 
-## Quick Start
+## Setup
+
+### What you need before running `so-ops init`
+
+The only **essential** credential is your Security Onion Elasticsearch password. Everything else is either auto-detected or optional.
+
+| What | Where to find it | Required? |
+|------|-----------------|-----------|
+| **SO manager IP/hostname** | Your Security Onion manager's address (e.g. `https://10.0.0.50:9200`) | Yes |
+| **Elasticsearch password** | On the SO manager, run: `sudo so-user show` to list users, or check SOC web UI under Administration. The default user is `so_elastic`. | Yes |
+| **Ollama URL** | Defaults to `http://localhost:11434` if Ollama is on the same box as so-ops. If Ollama runs elsewhere, use that machine's IP. | Yes |
+| **Notification credentials** | Discord/Slack webhook URL, email SMTP credentials, ntfy topic, etc. | No — but recommended |
+| **Network subnets** | Your monitored CIDRs (e.g. `192.168.1.0/24`). Helps the LLM understand which IPs are internal. | No — but improves triage accuracy |
+
+### Getting the Elasticsearch password
+
+On your **Security Onion manager**, run:
 
 ```bash
-# Interactive setup (creates config.toml, tests connections)
-so-ops init
+# Show the elastic user password
+sudo so-elastic-auth
 
-# Or manually: copy and edit the example config
+# Or if that's not available on your SO version, check:
+sudo so-user show
+```
+
+The default username is `so_elastic`. This is the same account used by SOC and Kibana to query Elasticsearch.
+
+### Running the setup wizard
+
+```bash
+so-ops init
+```
+
+The wizard will:
+1. Ask for your SO manager URL and ES credentials, then **test the connection**
+2. Auto-discover your SO data stream indices
+3. Ask for your Ollama URL, then **test the connection** and list available models
+4. Walk through notification providers (all optional)
+5. Ask for your network zones and scan targets
+6. Write `config.toml` (permissions set to 600)
+7. Optionally generate systemd timer units for automated scheduling
+
+### Manual setup (alternative)
+
+```bash
 cp config.example.toml config.toml
 chmod 600 config.toml
-# Edit config.toml with your values
+# Edit config.toml — at minimum fill in:
+#   [elasticsearch] host, user, password
+#   [ollama] url, model
+```
 
-# Verify
-so-ops config-check
-so-ops test-notify
+### Verify and run
 
-# Run
-so-ops triage --dry-run    # test without LLM
-so-ops triage              # full triage
+```bash
+so-ops config-check        # validate config
+so-ops test-notify         # test notification providers
+so-ops triage --dry-run    # test triage without LLM calls
+so-ops triage              # full triage run
 so-ops health              # daily health report
 so-ops scan --type nmap    # vulnerability scan
 ```
 
-## Configuration
+## Configuration Reference
 
-`so-ops init` walks you through setup interactively. Configuration lives in `config.toml` (searched in CWD, then `~/.config/so-ops/`, or set `$SO_OPS_CONFIG`).
-
-Key sections:
+Configuration lives in `config.toml` (searched in CWD, then `~/.config/so-ops/`, or set `$SO_OPS_CONFIG`).
 
 | Section | Purpose |
 |---------|---------|
