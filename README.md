@@ -86,29 +86,63 @@ python3 -m pip install .
 
 ### What you need before running `so-ops init`
 
-The only **essential** credential is your Security Onion Elasticsearch password. Everything else is either auto-detected or optional.
+The only **essential** credential is your Elasticsearch password. Everything else is either auto-detected or optional.
 
 | What | Where to find it | Required? |
 |------|-----------------|-----------|
 | **SO manager IP/hostname** | Your Security Onion manager's address (e.g. `https://10.0.0.50:9200`) | Yes |
-| **Elasticsearch password** | On the SO manager, run: `sudo so-user show` to list users, or check SOC web UI under Administration. The default user is `so_elastic`. | Yes |
+| **Elasticsearch user + password** | A read-only ES account (see [Security](#security) below) | Yes |
 | **Ollama URL** | Defaults to `http://localhost:11434` if Ollama is on the same box as so-ops. If Ollama runs elsewhere, use that machine's IP. | Yes |
 | **Notification credentials** | Discord/Slack webhook URL, email SMTP credentials, ntfy topic, etc. | No — but recommended |
 | **Network subnets** | Your monitored CIDRs (e.g. `192.168.1.0/24`). Helps the LLM understand which IPs are internal. | No — but improves triage accuracy |
 
-### Getting the Elasticsearch password
+### Security
 
-On your **Security Onion manager**, run:
+so-ops only **reads** from Elasticsearch — it never writes, deletes, or modifies any data. You should give it a **dedicated read-only account** rather than using `so_elastic`, which has full admin privileges. If the so-ops machine is ever compromised, a read-only credential limits the blast radius.
+
+**Create a read-only user on your SO manager:**
 
 ```bash
-# Show the elastic user password
-sudo so-elastic-auth
+# SSH into your Security Onion manager, then:
 
-# Or if that's not available on your SO version, check:
-sudo so-user show
+# 1. Create a role with read-only access to the SO indices
+sudo so-elasticsearch-query _security/role/so_ops_reader -XPUT -d '{
+  "indices": [
+    {
+      "names": ["logs-suricata.alerts-so", "logs-zeek-so", "logs-detections.alerts-so", "logs-syslog-so", "*so*"],
+      "privileges": ["read", "view_index_metadata"]
+    }
+  ]
+}'
+
+# 2. Create a user with that role
+sudo so-elasticsearch-query _security/user/so_ops -XPUT -d '{
+  "password": "YOUR_STRONG_PASSWORD_HERE",
+  "roles": ["so_ops_reader"]
+}'
 ```
 
-The default username is `so_elastic`. This is the same account used by SOC and Kibana to query Elasticsearch.
+If `so-elasticsearch-query` isn't available on your SO version, you can do the same via Kibana (Stack Management > Security > Roles/Users) or directly with curl against the ES API.
+
+**Keep the password out of the config file:**
+
+so-ops supports the `SO_OPS_ES_PASSWORD` environment variable, which overrides whatever is in `config.toml`. This way you can leave the password field empty in the file:
+
+```toml
+[elasticsearch]
+host = "https://10.0.0.50:9200"
+user = "so_ops"
+password = ""    # set SO_OPS_ES_PASSWORD env var instead
+```
+
+```bash
+# Pass it inline
+SO_OPS_ES_PASSWORD="your_password" so-ops triage
+
+# Or export it in your shell / systemd unit
+export SO_OPS_ES_PASSWORD="your_password"
+so-ops triage
+```
 
 ### Running the setup wizard
 

@@ -4,7 +4,11 @@
 
 [elasticsearch]
 host = "https://<your-so-manager>:9200"
-user = "so_elastic"
+# Recommended: create a dedicated read-only user instead of using so_elastic
+# See README.md for instructions on creating an so_ops reader account
+user = "so_ops"
+# Password can also be set via SO_OPS_ES_PASSWORD env var (recommended)
+# If the env var is set, it overrides this value
 password = ""
 verify_ssl = false
 

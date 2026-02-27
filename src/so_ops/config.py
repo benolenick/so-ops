@@ -142,6 +142,10 @@ def load_config(path: Path | None = None) -> Config:
     try:
         es_raw = dict(raw["elasticsearch"])
         indices_raw = es_raw.pop("indices", {})
+        # Allow env var to override password (keeps secrets out of config file)
+        env_password = os.environ.get("SO_OPS_ES_PASSWORD")
+        if env_password:
+            es_raw["password"] = env_password
         es = ESConfig(**es_raw, indices=ESIndicesConfig(**indices_raw))
 
         ollama = OllamaConfig(**raw["ollama"])
