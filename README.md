@@ -28,12 +28,49 @@ Collects 24h metrics from Suricata, Zeek, Sigma detections, and data stream heal
 ### Vulnerability Scanning (`so-ops scan`)
 Runs nmap + vulners and/or nuclei against your network. Produces a report with CVE findings and an AI executive summary.
 
+## Requirements
+
+- **Security Onion 2.4+** with Elasticsearch enabled
+- **Python 3.11+** (ships with Security Onion 2.4)
+- **pip** (Python package installer — see install steps below if missing)
+- **Ollama** with a model pulled (e.g., `ollama pull qwen3:14b`)
+- **nmap** (for vulnerability scanning)
+- **Docker** (for nuclei scanning, optional)
+
+so-ops has **zero third-party Python dependencies** — it only uses the Python standard library.
+
+## Install
+
+### Option A — pip install (recommended)
+
+```bash
+pip install git+https://github.com/benolenick/so-ops.git
+```
+
+If you get `-bash: pip: command not found`, install pip first:
+
+```bash
+# RHEL / Oracle Linux / Rocky (typical Security Onion base)
+sudo dnf install python3-pip
+
+# Debian / Ubuntu
+sudo apt install python3-pip
+
+# Or use the pip module directly (works without installing pip separately)
+python3 -m pip install git+https://github.com/benolenick/so-ops.git
+```
+
+### Option B — clone and install
+
+```bash
+git clone https://github.com/benolenick/so-ops.git
+cd so-ops
+python3 -m pip install .
+```
+
 ## Quick Start
 
 ```bash
-# Install
-pip install git+https://github.com/om/so-ops.git
-
 # Interactive setup (creates config.toml, tests connections)
 so-ops init
 
@@ -52,14 +89,6 @@ so-ops triage              # full triage
 so-ops health              # daily health report
 so-ops scan --type nmap    # vulnerability scan
 ```
-
-## Requirements
-
-- **Security Onion 2.4+** with Elasticsearch enabled
-- **Python 3.11+**
-- **Ollama** with a model pulled (e.g., `ollama pull qwen3:14b`)
-- **nmap** (for vulnerability scanning)
-- **Docker** (for nuclei scanning, optional)
 
 ## Configuration
 
